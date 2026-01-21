@@ -54,3 +54,31 @@ def not_found(error):
 @app.errorhandler(400)
 def bad_request(error):
     return make_response(jsonify({'error': 'Bad Request'}), 400)
+
+@app.route('/todo/api/v1.0/tasks/<int:task_id>', methods=["PUT"])
+def update_task(task_id):
+    #Recherche de la ta tâche à modifier avec son id
+    task = None
+    for taski in tasks:
+        if taski['id'] == task_id:
+            task = taski
+            break
+    #La tâche avec cette id n'existe pas
+    if task is None:
+        abort(404)
+    #La requête n'est pas au format json
+    if not request.json:
+        abort(400)
+    #Vérification des types
+    if 'title' in request.json and not isinstance(request.json['title'], str):
+        abort(400)
+    if 'description' in request.json and not isinstance(request.json['description'], str):
+        abort(400)
+    if 'done' in request.json and not isinstance(request.json['done'], bool):
+        abort(400)
+    #Modification des champs de la tâche
+    task['title'] = request.json.get('title', task['title'])
+    task['description'] = request.json.get('description', task['description'])
+    task['done'] = request.json.get('done', task['done'])
+    #Retour de la tâche modifiée
+    return jsonify({'task': make_public_task(task)})
