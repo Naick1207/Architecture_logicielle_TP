@@ -39,7 +39,7 @@ def create_task():
     task = {
         'id': new_id,
         'title': request.json['title'],
-        'description': request.json.get('description', ""),
+        'description': request.json['description'],
         'done': request.json.get('done', False)
     }
     #ajout de la nouvelle tâche aux tâches existantes
