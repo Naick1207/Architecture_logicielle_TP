@@ -82,3 +82,15 @@ def update_task(task_id):
     task['done'] = request.json.get('done', task['done'])
     #Retour de la tâche modifiée
     return jsonify({'task': make_public_task(task)})
+
+@app.route('/todo/api/v1.0/tasks/<int:task_id>', methods=["DELETE"])
+def delete_task(task_id):
+    task = None
+    for taski in tasks:
+        if taski['id'] == task_id:
+            task = taski
+            break
+    if task is None:
+        abort(404)
+    tasks.remove(task)
+    return jsonify({'status': 'deleted'})
