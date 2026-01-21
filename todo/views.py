@@ -14,7 +14,7 @@ def get_task(task_id):
     for task in tasks:
         if task['id'] == task_id:
             return jsonify({'task': make_public_task(task)})
-    return {'error': 'Not found'}, 404
+    return abort(404)
 
 def make_public_task(task):
     new_task = {}
@@ -30,7 +30,7 @@ def make_public_task(task):
 def create_task():
     #vérification des données reçues
     if not request.json or not 'title' in request.json:
-        return {'error': 'Bad request'}, 400
+        return abort(400)
     #construction de la nouvelle tâche
     if tasks == []:
         new_id = 1
@@ -46,3 +46,11 @@ def create_task():
     tasks.append(task)
     #retour de la nouvelle tâche avec son uri 201 indique qu'une ressource a été créée
     return jsonify({'task': make_public_task(task)}), 201
+
+@app.errorhandler(404)
+def not_found(error):
+    return make_response(jsonify({'error': 'Not found'}), 404)
+
+@app.errorhandler(400)
+def bad_request(error):
+    return make_response(jsonify({'error': 'Bad Request'}), 400)
