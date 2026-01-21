@@ -25,3 +25,24 @@ def make_public_task(task):
         else:
             new_task[field] = task[field]
     return new_task
+
+@app.route('/todo/api/v1.0/tasks', methods=['POST'])
+def create_task():
+    #vérification des données reçues
+    if not request.json or not 'title' in request.json:
+        return {'error': 'Bad request'}, 400
+    #construction de la nouvelle tâche
+    if tasks == []:
+        new_id = 1
+    else:
+        new_id = tasks[-1]['id'] + 1
+    task = {
+        'id': new_id,
+        'title': request.json['title'],
+        'description': request.json.get('description', ""),
+        'done': request.json.get('done', False)
+    }
+    #ajout de la nouvelle tâche aux tâches existantes
+    tasks.append(task)
+    #retour de la nouvelle tâche avec son uri 201 indique qu'une ressource a été créée
+    return jsonify({'task': make_public_task(task)}), 201
