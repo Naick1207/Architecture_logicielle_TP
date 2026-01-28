@@ -1,3 +1,3 @@
 from .app import app
-import todo.views
-import todo.models
+import quiz.views
+import quiz.models
