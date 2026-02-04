@@ -5,7 +5,10 @@ class Question(db.Model):
 
     numero = db.Column(db.Integer, primary_key=True)
     enonce = db.Column(db.String(50), nullable=False)
+    type_question = db.Column(db.String(20), nullable=False)
     questionnaire_id = db.Column(db.Integer, db.ForeignKey('Questionnaire.id', ondelete="CASCADE", onupdate="CASCADE"), primary_key=True)
+
+    __mapper_args__ = {'polymorphic_on': type_question}
 
     questionnaire = db.relationship("Questionnaire", backref=db.backref("questions", lazy="dynamic", cascade="all, delete-orphan"))
 
@@ -16,7 +19,38 @@ class Question(db.Model):
 
     def to_json(self):
         return {"numero" : self.numero, "enonce" : self.enonce}
+    
+class QuestionOuverte(Question):
+    __mapper_args__ = {'polymorphic_identity': "ouverte"}
 
+    __tablename__ = "QuestionOuverte"
+
+    reponse = db.Column(db.String(50))
+
+    def __init__(self, numero, enonce, questionnaire_id, reponse):
+        super().__init__(numero, enonce, questionnaire_id)
+        self.reponse = reponse
+
+    def to_json(self):
+        return {"numero" : self.numero, "enonce" : self.enonce, "reponse" : self.reponse}
+    
+class QuestionCM(Question):
+    __mapper_args__ = {'polymorphic_identity': "qcm"}
+
+    __tablename__ = "QCM"
+
+    bonne_reponse = db.Column(db.Integer)
+    reponse1 = db.Column(db.String(50))
+    reponse2 = db.Column(db.String(50))
+
+    def __init__(self, numero, enonce, questionnaire_id, bonne_reponse, reponse1, reponse2):
+        super().__init__(numero, enonce, questionnaire_id)
+        self.bonne_reponse = bonne_reponse
+        self.reponse1 = reponse1
+        self.reponse2 = reponse2
+    
+    def to_json(self):
+        return {"numero" : self.numero, "enonce" : self.enonce, "bonne_reponse" : self.bonne_reponse, "reponse1" : self.reponse1, "reponse2" : self.reponse2}
 
 class Questionnaire(db.Model):
     __tablename__ = "Questionnaire"
@@ -27,21 +61,26 @@ class Questionnaire(db.Model):
     def __init__(self, nom:str):
         self.nom = nom
     
-    def ajouter_question(self, enonce:str):
-        question = Question(len(list(self.questions)) + 1, enonce, self.id)
-        db.session.add(question)
-        db.session.commit()
+    def ajouter_question(self, enonce:str, type:str, parametre:str|dict[str, str]):
+        question = None
+        if type == "ouverte":
+            question = QuestionOuverte(len(list(self.questions)) + 1, enonce, self.id, parametre)
+        elif type == "qcm":
+            question = QuestionCM(len(list(self.questions)) + 1, enonce, self.id, parametre["bonne_reponse"], parametre["reponse1"], parametre["reponse2"])
+        if question is not None:
+            db.session.add(question)
+            db.session.commit()
         return question
     
     def retirer_question(self, numero:int):
-        question = Question.query.filter(Question.numero == numero, Question.questionnaire_id == self.id)
+        question = Question.query.get((numero, self.id))
         if question is not None:
             db.session.delete(question)
             db.session.commit()
         return question
 
     def get_question(self, numero:int):
-        question = Question.query.filter(Question.numero == numero, Question.questionnaire_id == self.id)
+        question = Question.query.get((numero, self.id))
         return question
     
     def get_questions(self):

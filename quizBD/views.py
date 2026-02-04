@@ -50,12 +50,21 @@ def afficher_question(questionnaire_id, question_num):
 
 @app.route('/quiz/api/v1.0/questionnaires/<int:questionnaire_id>', methods = ['POST'])
 def create_question(questionnaire_id):
-    questionnaire = recuperer_questionnaire(questionnaire_id)
+    questionnaire:Questionnaire = recuperer_questionnaire(questionnaire_id)
     if questionnaire is None:
         return abort(404)
-    if not request.json or not 'enonce' in request.json:
+    if not request.json or not 'enonce' in request.json or not 'type' in request.json:
         return abort(400)
-    question = questionnaire.ajouter_question(request.json['enonce'])
+    if request.json['type'] == 'ouverte':
+        if not 'reponse' in request.json:
+            return abort(400)
+        question = questionnaire.ajouter_question(request.json['enonce'], 'ouverte', request.json['reponse'])
+    elif request.json['type'] == 'qcm':
+        if not 'bonne_reponse' in request.json or not 'reponse1' in request.json or not 'reponse2' in request.json:
+            return abort(400)
+        question = questionnaire.ajouter_question(request.json['enonce'], 'qcm', request.json)
+    else:
+        return abort(400)
     return jsonify({'question' : question.to_json()}), 201
 
 @app.route('/quiz/api/v1.0/questionnaires/<int:questionnaire_id>/<int:question_num>', methods = ['DELETE'])
