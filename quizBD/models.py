@@ -9,8 +9,10 @@ class Question(db.Model):
 
     questionnaire = db.relationship("Questionnaire", backref=db.backref("questions", lazy="dynamic", cascade="all, delete-orphan"))
 
-    def __init__(self, enonce):
+    def __init__(self, numero, enonce, questionnaire_id):
+        self.numero = numero
         self.enonce = enonce
+        self.questionnaire_id = questionnaire_id
 
     def to_json(self):
         return {"numero" : self.numero, "enonce" : self.enonce}
@@ -26,24 +28,21 @@ class Questionnaire(db.Model):
         self.nom = nom
     
     def ajouter_question(self, enonce:str):
-        question = Question(len(self.questions), enonce)
-        self.questions.append(question)
+        question = Question(len(list(self.questions)) + 1, enonce, self.id)
+        db.session.add(question)
+        db.session.commit()
         return question
     
     def retirer_question(self, numero:int):
-        question = None
-        for q in self.questions:
-            if q.numero == numero:
-                question = q
-                break
+        question = Question.query.filter(Question.numero == numero, Question.questionnaire_id == self.id)
         if question is not None:
-            self.questions.remove(question)
+            db.session.delete(question)
+            db.session.commit()
         return question
 
     def get_question(self, numero:int):
-        for question in self.questions:
-            if question.numero == numero:
-                return question
+        question = Question.query.filter(Question.numero == numero, Question.questionnaire_id == self.id)
+        return question
     
     def get_questions(self):
         return self.questions
@@ -57,31 +56,29 @@ class Questionnaire(db.Model):
     def to_json(self):
         return {"nom" : self.nom, "questions" : [q.to_json() for q in self.questions]}
 
-def recuperer_questionnaires():
-    return questionnaires
+def recuperer_questionnaires() -> list[Question]:
+    return Questionnaire.query.all()
 
 def recuperer_questionnaire(id):
-    questionnaire = None
-    for q in questionnaires:
-        if q.id == id:
-            questionnaire = q
-            break
-    return questionnaire
+    return Questionnaire.query.get(id)
     
 def creer_questionnaire(nom):
-    questionnaires.append(Questionnaire(nom))
+    questionnaire = Questionnaire(nom)
+    db.session.add(questionnaire)
+    db.session.commit()
+    return questionnaire
 
 def supprimer_questionnaire(id):
-    questionnaire = None
-    for q in questionnaires:
-        if q.id == id:
-            questionnaire = q
-            break
+    questionnaire = Questionnaire.query.get(id)
     if questionnaire is not None:
-        questionnaires.remove(questionnaire)
+        db.session.delete(questionnaire)
+        db.session.commit()
+    return questionnaire
 
+def modifier_questionnaire(id, nom):
+    questionnaire = Questionnaire.query.get(id)
+    if questionnaire is not None:
+        questionnaire.nom = nom
+        db.session.commit()
+    return questionnaire
 
-
-questionnaires:list[Questionnaire] = []
-creer_questionnaire("Test1")
-creer_questionnaire("Test2")
